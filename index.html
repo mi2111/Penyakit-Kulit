@@ -1,0 +1,1005 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Identifikasi Penyakit Kulit | LBP Random Forest</title>
+  <style>
+    :root {
+      --bg: #f7f9f8;
+      --surface: #ffffff;
+      --surface-2: #eef5f2;
+      --text: #17211d;
+      --muted: #66746e;
+      --line: #dbe5e1;
+      --primary: #0f766e;
+      --primary-2: #115e59;
+      --accent: #b45309;
+      --danger: #b91c1c;
+      --shadow: 0 18px 50px rgba(23, 33, 29, 0.09);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        linear-gradient(135deg, rgba(15, 118, 110, 0.10), transparent 34%),
+        linear-gradient(315deg, rgba(180, 83, 9, 0.08), transparent 30%),
+        var(--bg);
+    }
+
+    button, input {
+      font: inherit;
+    }
+
+    .shell {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 24px 0 40px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 12px 0 28px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      background: #0f766e;
+      color: white;
+      box-shadow: 0 12px 22px rgba(15, 118, 110, 0.22);
+    }
+
+    .brand-mark svg {
+      width: 25px;
+      height: 25px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .brand p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 13px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #16a34a;
+      box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.12);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.02fr 0.98fr;
+      gap: 22px;
+      align-items: stretch;
+    }
+
+    .intro, .workspace, .panel {
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid rgba(219, 229, 225, 0.86);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    .intro {
+      border-radius: 18px;
+      padding: 30px;
+      min-height: 440px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+    }
+
+    .eyebrow {
+      width: fit-content;
+      margin: 0 0 16px;
+      padding: 7px 11px;
+      border: 1px solid rgba(15, 118, 110, 0.18);
+      border-radius: 999px;
+      color: var(--primary-2);
+      background: rgba(15, 118, 110, 0.08);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .intro h2 {
+      margin: 0;
+      max-width: 700px;
+      font-size: clamp(34px, 5vw, 58px);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .intro-copy {
+      max-width: 680px;
+      margin: 18px 0 0;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.65;
+    }
+
+    .metrics-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .metric {
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(247, 249, 248, 0.78);
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 24px;
+      line-height: 1.1;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .pipeline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 22px;
+    }
+
+    .pipeline span {
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(15, 118, 110, 0.16);
+      background: rgba(238, 245, 242, 0.85);
+      color: #31504a;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .workspace {
+      border-radius: 18px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .upload-zone {
+      position: relative;
+      min-height: 250px;
+      display: grid;
+      place-items: center;
+      padding: 22px;
+      border: 1.5px dashed #9ab8b0;
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(238, 245, 242, 0.62), rgba(255, 255, 255, 0.72));
+      transition: border-color .2s, transform .2s, background .2s;
+      cursor: pointer;
+      overflow: hidden;
+    }
+
+    .upload-zone.dragover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+      background: rgba(15, 118, 110, 0.08);
+    }
+
+    .upload-zone input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .upload-zone.camera-active input {
+      display: none;
+    }
+
+    .upload-empty {
+      text-align: center;
+      max-width: 360px;
+    }
+
+    .upload-icon {
+      width: 64px;
+      height: 64px;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 14px;
+      border-radius: 18px;
+      background: #e2f1ec;
+      color: var(--primary-2);
+    }
+
+    .upload-icon svg {
+      width: 32px;
+      height: 32px;
+    }
+
+    .upload-empty strong {
+      display: block;
+      font-size: 18px;
+    }
+
+    .upload-empty span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .preview-image {
+      width: 100%;
+      height: 100%;
+      max-height: 360px;
+      object-fit: contain;
+      border-radius: 12px;
+      background: #edf3f0;
+      display: none;
+    }
+
+    .camera-view {
+      width: 100%;
+      max-height: 360px;
+      object-fit: contain;
+      border-radius: 12px;
+      background: #0f172a;
+      display: none;
+    }
+
+    .camera-tools {
+      display: none;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .camera-tools.active {
+      display: flex;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 12px;
+      padding: 12px 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      min-height: 46px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform .2s, box-shadow .2s, background .2s;
+    }
+
+    .btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .btn-primary {
+      flex: 1 1 220px;
+      color: white;
+      background: var(--primary);
+      box-shadow: 0 12px 24px rgba(15, 118, 110, 0.24);
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-2);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      color: #29443e;
+      background: #eaf2ef;
+      border: 1px solid var(--line);
+    }
+
+    .btn:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .notice {
+      padding: 12px 14px;
+      border-radius: 12px;
+      color: #7c2d12;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: 0.78fr 1.22fr;
+      gap: 18px;
+      margin-top: 22px;
+    }
+
+    .panel {
+      border-radius: 16px;
+      padding: 20px;
+    }
+
+    .panel h3 {
+      margin: 0 0 14px;
+      font-size: 18px;
+    }
+
+    .prediction {
+      display: grid;
+      gap: 14px;
+    }
+
+    .prediction-label {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .prediction-label strong {
+      font-size: clamp(32px, 4vw, 46px);
+      line-height: 1;
+    }
+
+    .confidence {
+      min-width: 102px;
+      text-align: right;
+      color: var(--primary-2);
+      font-weight: 900;
+      font-size: 26px;
+    }
+
+    .desc {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .progress-list {
+      display: grid;
+      gap: 11px;
+    }
+
+    .prob-row {
+      display: grid;
+      grid-template-columns: 132px 1fr 58px;
+      gap: 10px;
+      align-items: center;
+      font-size: 14px;
+    }
+
+    .bar-track {
+      height: 10px;
+      border-radius: 999px;
+      background: #e5eeea;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--primary), #d97706);
+      transition: width .4s ease;
+    }
+
+    .prob-value {
+      text-align: right;
+      color: #304840;
+      font-weight: 800;
+    }
+
+    .stage-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .stage {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--surface);
+      overflow: hidden;
+    }
+
+    .stage img, .histogram {
+      width: 100%;
+      height: 180px;
+      object-fit: contain;
+      display: block;
+      background: #eef3f1;
+    }
+
+    .stage-meta {
+      padding: 12px;
+    }
+
+    .stage-meta strong {
+      display: block;
+      font-size: 14px;
+    }
+
+    .stage-meta span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .histogram {
+      padding: 14px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .error {
+      color: var(--danger);
+      background: #fef2f2;
+      border-color: #fecaca;
+    }
+
+    .loader {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, .45);
+      border-top-color: #fff;
+      animation: spin .8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 920px) {
+      .hero, .result-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .intro {
+        min-height: auto;
+      }
+
+      .stage-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .shell {
+        width: min(100% - 22px, 1180px);
+        padding-top: 14px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .intro, .workspace, .panel {
+        border-radius: 14px;
+      }
+
+      .intro {
+        padding: 22px;
+      }
+
+      .metrics-strip {
+        grid-template-columns: 1fr;
+      }
+
+      .prediction-label {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .confidence {
+        text-align: left;
+      }
+
+      .prob-row {
+        grid-template-columns: 104px 1fr 48px;
+        font-size: 13px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M12 3c3.9 3.2 6 6.2 6 9.1A6 6 0 1 1 6 12.1C6 9.2 8.1 6.2 12 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M9.2 13.2c1.7.9 3.9.9 5.6 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <h1>Identifikasi Penyakit Kulit</h1>
+          <p>Ekstraksi fitur LBP dan klasifikasi Random Forest</p>
+        </div>
+      </div>
+      <div class="status-pill"><span class="status-dot"></span><span>Model aktif</span></div>
+    </header>
+
+    <section class="hero">
+      <div class="intro">
+        <div>
+          <p class="eyebrow">Sistem Machine Learning</p>
+          <h2>Analisis citra kulit yang cepat, jelas, dan mudah dibaca.</h2>
+          <p class="intro-copy">Unggah citra kulit, lalu sistem akan menampilkan tahapan preprocessing, ekstraksi fitur Local Binary Pattern, dan probabilitas hasil klasifikasi untuk setiap kelas.</p>
+          <div class="pipeline" aria-label="Tahapan sistem">
+            <span>Dataset</span>
+            <span>Preprocessing</span>
+            <span>LBP</span>
+            <span>Random Forest</span>
+            <span>Pengujian</span>
+          </div>
+        </div>
+        <div class="metrics-strip">
+          <div class="metric"><strong>6</strong><span>Kelas citra kulit</span></div>
+          <div class="metric"><strong>80:20</strong><span>Training dan testing</span></div>
+          <div class="metric"><strong>82%</strong><span>Akurasi data uji</span></div>
+        </div>
+      </div>
+
+      <div class="workspace">
+        <label class="upload-zone" id="dropZone">
+          <input id="fileInput" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png">
+          <img id="previewImage" class="preview-image" alt="Preview citra yang diunggah">
+          <video id="cameraVideo" class="camera-view" autoplay playsinline muted></video>
+          <canvas id="cameraCanvas" class="hidden"></canvas>
+          <div id="uploadEmpty" class="upload-empty">
+            <div class="upload-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M12 16V4m0 0 4 4m-4-4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M20 16.5v1.2A2.3 2.3 0 0 1 17.7 20H6.3A2.3 2.3 0 0 1 4 17.7v-1.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <strong>Pilih atau letakkan citra kulit</strong>
+            <span>Format JPG, JPEG, atau PNG. PDF tidak diperbolehkan. Ukuran maksimal 8 MB.</span>
+          </div>
+        </label>
+
+        <div class="camera-tools" id="cameraTools">
+          <button class="btn btn-primary" id="captureButton" type="button">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M8.5 7 10 5h4l1.5 2H18a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-6a3 3 0 0 1 3-3h2.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M12 16a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            <span>Ambil Foto</span>
+          </button>
+          <button class="btn btn-secondary" id="closeCameraButton" type="button">Tutup Kamera</button>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-secondary" id="cameraButton" type="button">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M8.5 7 10 5h4l1.5 2H18a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-6a3 3 0 0 1 3-3h2.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M12 16a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            <span>Gunakan Kamera</span>
+          </button>
+          <button class="btn btn-primary" id="predictButton" disabled>
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="m9 18 6-6-6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Mulai Identifikasi</span>
+          </button>
+          <button class="btn btn-secondary" id="resetButton" type="button">Reset</button>
+        </div>
+
+        <div class="notice" id="message">Hasil sistem ini digunakan sebagai pendukung penelitian, bukan pengganti diagnosis dokter.</div>
+      </div>
+    </section>
+
+    <section class="result-grid hidden" id="results">
+      <div class="panel prediction">
+        <h3>Hasil Prediksi</h3>
+        <div class="prediction-label">
+          <strong id="predictionName">-</strong>
+          <div class="confidence" id="confidence">0%</div>
+        </div>
+        <p class="desc" id="predictionDescription"></p>
+      </div>
+
+      <div class="panel">
+        <h3>Probabilitas Kelas</h3>
+        <div class="progress-list" id="probabilityList"></div>
+      </div>
+    </section>
+
+    <section class="panel hidden" id="stagesPanel" style="margin-top:18px;">
+      <h3>Tahapan Pemrosesan Citra</h3>
+      <div class="stage-grid">
+        <div class="stage">
+          <img id="stageOriginal" alt="Citra asli">
+          <div class="stage-meta">
+            <strong>Citra Asli</strong>
+            <span id="originalMeta">Ukuran awal citra pengguna.</span>
+          </div>
+        </div>
+        <div class="stage">
+          <img id="stagePreprocessed" alt="Hasil preprocessing grayscale">
+          <div class="stage-meta">
+            <strong>Preprocessing</strong>
+            <span id="processedMeta">Resize, grayscale, dan Gaussian blur.</span>
+          </div>
+        </div>
+        <div class="stage">
+          <img id="stageLbp" alt="Visualisasi LBP">
+          <div class="stage-meta">
+            <strong>Ekstraksi Fitur LBP</strong>
+            <span>Visualisasi pola tekstur lokal dari citra.</span>
+          </div>
+        </div>
+        <div class="stage">
+          <canvas id="histogramCanvas" class="histogram" width="420" height="220"></canvas>
+          <div class="stage-meta">
+            <strong>Histogram LBP</strong>
+            <span>Vektor fitur yang digunakan oleh Random Forest.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const dropZone = document.getElementById('dropZone');
+    const previewImage = document.getElementById('previewImage');
+    const cameraVideo = document.getElementById('cameraVideo');
+    const cameraCanvas = document.getElementById('cameraCanvas');
+    const cameraTools = document.getElementById('cameraTools');
+    const cameraButton = document.getElementById('cameraButton');
+    const captureButton = document.getElementById('captureButton');
+    const closeCameraButton = document.getElementById('closeCameraButton');
+    const uploadEmpty = document.getElementById('uploadEmpty');
+    const predictButton = document.getElementById('predictButton');
+    const resetButton = document.getElementById('resetButton');
+    const message = document.getElementById('message');
+    const results = document.getElementById('results');
+    const stagesPanel = document.getElementById('stagesPanel');
+    const predictionName = document.getElementById('predictionName');
+    const confidence = document.getElementById('confidence');
+    const predictionDescription = document.getElementById('predictionDescription');
+    const probabilityList = document.getElementById('probabilityList');
+    const stageOriginal = document.getElementById('stageOriginal');
+    const stagePreprocessed = document.getElementById('stagePreprocessed');
+    const stageLbp = document.getElementById('stageLbp');
+    const originalMeta = document.getElementById('originalMeta');
+    const processedMeta = document.getElementById('processedMeta');
+    const histogramCanvas = document.getElementById('histogramCanvas');
+
+    let selectedFile = null;
+    let previewUrl = null;
+    let cameraStream = null;
+    const allowedImageTypes = ['image/jpeg', 'image/png'];
+    const allowedImageExtensions = ['.jpg', '.jpeg', '.png'];
+
+    function setMessage(text, isError = false) {
+      message.textContent = text;
+      message.classList.toggle('error', isError);
+    }
+
+    function setLoading(isLoading) {
+      predictButton.disabled = isLoading || !selectedFile;
+      if (isLoading) {
+        predictButton.innerHTML = '<span class="loader" aria-hidden="true"></span><span>Memproses Citra</span>';
+      } else {
+        predictButton.innerHTML = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 18 6-6-6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Mulai Identifikasi</span>';
+      }
+    }
+
+    function isAllowedImageFile(file) {
+      const fileName = file.name.toLowerCase();
+      const hasAllowedExtension = allowedImageExtensions.some((extension) => fileName.endsWith(extension));
+      const hasAllowedType = !file.type || allowedImageTypes.includes(file.type);
+      return hasAllowedExtension && hasAllowedType;
+    }
+
+    function stopCamera() {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach((track) => track.stop());
+      }
+      cameraStream = null;
+      cameraVideo.srcObject = null;
+      cameraVideo.style.display = 'none';
+      cameraTools.classList.remove('active');
+      dropZone.classList.remove('camera-active');
+    }
+
+    function handleFile(file) {
+      if (!file) return;
+      if (!isAllowedImageFile(file)) {
+        setMessage('File harus berupa foto dengan format JPG, JPEG, atau PNG. File PDF tidak diperbolehkan.', true);
+        fileInput.value = '';
+        return;
+      }
+      if (file.size > 8 * 1024 * 1024) {
+        setMessage('Ukuran file terlalu besar. Maksimal 8 MB.', true);
+        fileInput.value = '';
+        return;
+      }
+
+      stopCamera();
+      selectedFile = file;
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      previewUrl = URL.createObjectURL(file);
+      previewImage.src = previewUrl;
+      stageOriginal.src = previewUrl;
+      previewImage.style.display = 'block';
+      uploadEmpty.style.display = 'none';
+      predictButton.disabled = false;
+      results.classList.add('hidden');
+      stagesPanel.classList.add('hidden');
+      setMessage(`Citra siap diproses: ${file.name}`);
+    }
+
+    async function startCamera() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setMessage('Browser tidak mendukung akses kamera. Gunakan upload foto JPG atau PNG.', true);
+        return;
+      }
+
+      try {
+        stopCamera();
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+        previewUrl = null;
+        selectedFile = null;
+        fileInput.value = '';
+        results.classList.add('hidden');
+        stagesPanel.classList.add('hidden');
+        previewImage.removeAttribute('src');
+        previewImage.style.display = 'none';
+        uploadEmpty.style.display = 'none';
+        predictButton.disabled = true;
+
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' },
+          audio: false,
+        });
+        cameraVideo.srcObject = cameraStream;
+        cameraVideo.style.display = 'block';
+        cameraTools.classList.add('active');
+        dropZone.classList.add('camera-active');
+        setMessage('Kamera aktif. Arahkan kamera ke area kulit, lalu pilih Ambil Foto.');
+      } catch (error) {
+        stopCamera();
+        uploadEmpty.style.display = 'block';
+        setMessage('Kamera tidak dapat diakses. Pastikan izin kamera diberikan oleh browser.', true);
+      }
+    }
+
+    function capturePhoto() {
+      if (!cameraStream || !cameraVideo.videoWidth || !cameraVideo.videoHeight) {
+        setMessage('Kamera belum siap. Tunggu sebentar lalu coba ambil foto lagi.', true);
+        return;
+      }
+
+      cameraCanvas.width = cameraVideo.videoWidth;
+      cameraCanvas.height = cameraVideo.videoHeight;
+      const ctx = cameraCanvas.getContext('2d');
+      ctx.drawImage(cameraVideo, 0, 0, cameraCanvas.width, cameraCanvas.height);
+
+      cameraCanvas.toBlob((blob) => {
+        if (!blob) {
+          setMessage('Gagal mengambil foto dari kamera.', true);
+          return;
+        }
+        const file = new File([blob], 'foto-kamera.jpg', { type: 'image/jpeg' });
+        handleFile(file);
+      }, 'image/jpeg', 0.92);
+    }
+
+    function drawHistogram(values) {
+      const ctx = histogramCanvas.getContext('2d');
+      const width = histogramCanvas.width;
+      const height = histogramCanvas.height;
+      const padding = 24;
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = '#eef3f1';
+      ctx.fillRect(0, 0, width, height);
+
+      const max = Math.max(...values, 0.001);
+      const barGap = 8;
+      const usableWidth = width - padding * 2;
+      const barWidth = Math.max(14, (usableWidth - barGap * (values.length - 1)) / values.length);
+      const baseY = height - padding;
+
+      ctx.strokeStyle = '#c9d9d4';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(padding, padding);
+      ctx.lineTo(padding, baseY);
+      ctx.lineTo(width - padding, baseY);
+      ctx.stroke();
+
+      values.forEach((value, index) => {
+        const barHeight = (value / max) * (height - padding * 2 - 10);
+        const x = padding + index * (barWidth + barGap);
+        const y = baseY - barHeight;
+        const gradient = ctx.createLinearGradient(0, y, 0, baseY);
+        gradient.addColorStop(0, '#0f766e');
+        gradient.addColorStop(1, '#d97706');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(x, y, barWidth, barHeight);
+      });
+    }
+
+    function renderProbabilities(rows) {
+      probabilityList.innerHTML = '';
+      if (!rows.length) {
+        const empty = document.createElement('p');
+        empty.className = 'desc';
+        empty.textContent = 'Probabilitas penyakit tidak ditampilkan karena gambar tidak dikenali sebagai citra kulit.';
+        probabilityList.appendChild(empty);
+        return;
+      }
+
+      rows.forEach((item) => {
+        const row = document.createElement('div');
+        row.className = 'prob-row';
+        const value = Math.round(item.probability * 1000) / 10;
+        row.innerHTML = `
+          <strong>${item.name}</strong>
+          <div class="bar-track"><div class="bar-fill" style="width:${value}%"></div></div>
+          <span class="prob-value">${value.toFixed(1)}%</span>
+        `;
+        probabilityList.appendChild(row);
+      });
+    }
+
+    async function predict() {
+      if (!selectedFile) return;
+      const formData = new FormData();
+      formData.append('image', selectedFile);
+
+      setLoading(true);
+      setMessage('Citra sedang diproses melalui preprocessing, LBP, lalu Random Forest.');
+
+      try {
+        const response = await fetch('/api/predict', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await response.json();
+        if (!response.ok || data.error) {
+          throw new Error(data.error || 'Prediksi gagal diproses.');
+        }
+
+        const percent = Math.round(data.prediction.confidence * 1000) / 10;
+        predictionName.textContent = data.prediction.name;
+        confidence.textContent = `${percent.toFixed(1)}%`;
+        predictionDescription.textContent = data.prediction.description;
+        renderProbabilities(data.probabilities);
+
+        stagePreprocessed.src = data.stages.preprocessed_image;
+        stageLbp.src = data.stages.lbp_image;
+        originalMeta.textContent = `${data.stages.original_size.width} x ${data.stages.original_size.height} piksel`;
+        processedMeta.textContent = `${data.stages.processed_size.width} x ${data.stages.processed_size.height} piksel, grayscale, Gaussian blur`;
+        drawHistogram(data.histogram);
+
+        results.classList.remove('hidden');
+        stagesPanel.classList.remove('hidden');
+        if (data.prediction.is_skin_image === false) {
+          setMessage('Gambar tidak terdeteksi sebagai citra kulit. Silakan unggah foto area kulit yang lebih jelas.', true);
+        } else {
+          setMessage('Identifikasi selesai. Periksa prediksi, probabilitas, dan tahapan pemrosesan di bawah.');
+        }
+      } catch (error) {
+        setMessage(error.message, true);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function resetApp() {
+      selectedFile = null;
+      stopCamera();
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      previewUrl = null;
+      fileInput.value = '';
+      previewImage.removeAttribute('src');
+      previewImage.style.display = 'none';
+      uploadEmpty.style.display = 'block';
+      predictButton.disabled = true;
+      results.classList.add('hidden');
+      stagesPanel.classList.add('hidden');
+      setMessage('Hasil sistem ini digunakan sebagai pendukung penelitian, bukan pengganti diagnosis dokter.');
+    }
+
+    fileInput.addEventListener('change', (event) => handleFile(event.target.files[0]));
+    cameraButton.addEventListener('click', startCamera);
+    captureButton.addEventListener('click', capturePhoto);
+    closeCameraButton.addEventListener('click', () => {
+      stopCamera();
+      uploadEmpty.style.display = selectedFile ? 'none' : 'block';
+      setMessage('Kamera ditutup. Silakan unggah foto JPG/PNG atau aktifkan kamera lagi.');
+    });
+    predictButton.addEventListener('click', predict);
+    resetButton.addEventListener('click', resetApp);
+
+    ['dragenter', 'dragover'].forEach((eventName) => {
+      dropZone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        dropZone.classList.add('dragover');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach((eventName) => {
+      dropZone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        dropZone.classList.remove('dragover');
+      });
+    });
+
+    dropZone.addEventListener('drop', (event) => {
+      handleFile(event.dataTransfer.files[0]);
+    });
+  </script>
+</body>
+</html>
